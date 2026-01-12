@@ -28,5 +28,16 @@ namespace MogTomeApi.Services
             var activeMembers = freeCompanyMembers.Where(member => member.ActiveMember).ToList();
             return activeMembers;
         }
+
+        public async Task<List<Event>> GetFreeCompanyEvents()
+        {
+            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
+            var filter = Builders<Event>.Filter.Empty;
+            var events = await eventsCollection
+                .Find(filter)
+                .ToListAsync();
+
+            return events;
+        }
     }
 }

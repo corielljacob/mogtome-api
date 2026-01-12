@@ -1,12 +1,9 @@
-﻿namespace MogTomeApi.HubClients
+﻿using MogTomeApi.Data;
+
+namespace MogTomeApi.HubClients
 {
     public interface IHubClient
     {
-        Task InformClient(Member message);
-    }
-
-    public class Member
-    {
-        public string name { get; set; }
+        Task InformClient(List<Event> events);
     }
 }
