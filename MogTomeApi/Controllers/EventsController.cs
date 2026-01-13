@@ -23,7 +23,7 @@ namespace MogTomeApi.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<PaginatedEventsResponse>> GetEvents([FromQuery] string cursor, [FromQuery] int limit)
+        public async Task<ActionResult<PaginatedEventsResponse>> GetEvents([FromQuery] string cursor, [FromQuery] int limit = 100)
         {
             try
             {
