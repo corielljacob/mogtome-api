@@ -4,11 +4,6 @@ using MogTomeApi.Data;
 using MogTomeApi.HubClients;
 using MogTomeApi.Hubs;
 using MogTomeApi.Services;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Driver;
-using System.Threading.Tasks;
 
 namespace MogTomeApi.Controllers
 {
@@ -25,18 +20,25 @@ namespace MogTomeApi.Controllers
             _logger = logger;
             _eventsHub = eventsHubContext;
             _mongoService = mongoService;
-            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
         }
 
         [HttpGet()]
-        public async Task<IEnumerable<Event>> GetEvents()
+        public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
         {
-            var events = await _mongoService.GetFreeCompanyEvents();
-            return events;
+            try
+            {
+                var events = await _mongoService.GetFreeCompanyEvents();
+                return Ok(events);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError("Error fetching events: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching events");
+            }
         }
 
         [HttpPost("create-event")]
-        public void CreateEvent([FromBody] List<Event> events)
+        public IActionResult CreateEvent([FromBody] List<Event> events)
         {
             HttpContext.Request.Headers.TryGetValue("X-API-KEY", out var apiKeyValues);
             var apiKey = apiKeyValues.ToString().ToUpper();
@@ -45,11 +47,11 @@ namespace MogTomeApi.Controllers
             if (apiKey != expectedApiKey)
             {
                 _logger.LogWarning("Unauthorized attempt to create event.");
-                HttpContext.Response.StatusCode = 401; // Unauthorized
-                return;
+                return StatusCode(StatusCodes.Status401Unauthorized, "You are not authorized to create an event");
             }
 
             _eventsHub.Clients.All.InformClient(events);
+            return Ok();
         }
     }
 }

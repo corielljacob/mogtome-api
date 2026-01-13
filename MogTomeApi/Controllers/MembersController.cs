@@ -5,7 +5,7 @@ using MogTomeApi.Services;
 namespace MogTomeApi.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("members")]
     public class MembersController : ControllerBase
     {
         private readonly ILogger<EventsController> _logger;
@@ -17,22 +17,30 @@ namespace MogTomeApi.Controllers
             _mongoService = mongoService;
         }
 
-        [HttpGet(Name = "GetMembers")]
-        public async Task<Response> GetMembers()
+        [HttpGet()]
+        public async Task<ActionResult<GetMembersResponse>> GetMembers()
         {
-            var members = await _mongoService.GetFreeCompanyMembers();
-
-            var response = new Response
+            try
             {
-                Members = members,
-                TotalCount = members.Count
-            };
-            
-            return response;
+                var members = await _mongoService.GetFreeCompanyMembers();
+                
+                var response = new GetMembersResponse
+                {
+                    Members = members,
+                    TotalCount = members.Count
+                };
+
+                return Ok(response);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError("Error fetching members: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching members");
+            }
         }
     }
     
-    public class Response
+    public class GetMembersResponse
     {
         public int TotalCount { get; set; }
         public required IEnumerable<FreeCompanyMember> Members { get; set; }
