@@ -23,11 +23,11 @@ namespace MogTomeApi.Controllers
         }
 
         [HttpGet()]
-        public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+        public async Task<ActionResult<PaginatedEventsResponse>> GetEvents([FromQuery] string cursor, [FromQuery] int limit)
         {
             try
             {
-                var events = await _mongoService.GetFreeCompanyEvents();
+                var events = await _mongoService.GetFreeCompanyEvents(cursor, limit);
                 return Ok(events);
             }
             catch(Exception ex)
@@ -52,6 +52,13 @@ namespace MogTomeApi.Controllers
 
             _eventsHub.Clients.All.InformClient(events);
             return Ok();
+        }
+
+        public class PaginatedEventsResponse
+        {
+            public List<Event> Events { get; set; }
+            public string NextCursor { get; set; }
+            public bool HasMore { get; set; }
         }
     }
 }

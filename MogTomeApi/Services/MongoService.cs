@@ -1,5 +1,8 @@
-﻿using MogTomeApi.Data;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using MogTomeApi.Data;
+using MongoDB.Bson;
 using MongoDB.Driver;
+using static MogTomeApi.Controllers.EventsController;
 
 namespace MogTomeApi.Services
 {
@@ -29,15 +32,53 @@ namespace MogTomeApi.Services
             return activeMembers;
         }
 
-        public async Task<List<Event>> GetFreeCompanyEvents()
+        public async Task<PaginatedEventsResponse> GetFreeCompanyEvents(string cursor, int limit)
         {
-            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
+            var decodedCursor = CursorHelper.DecodeCursor(cursor);
+
             var filter = Builders<Event>.Filter.Empty;
+
+            if(decodedCursor is not null)
+            {
+                var createdAtFilter = decodedCursor.CreatedAt;
+                var idFilter = ObjectId.Parse(decodedCursor.Id);
+
+                filter = Builders<Event>.Filter.Or(
+                    Builders<Event>.Filter.Lt(e => e.CreatedAt, createdAtFilter),
+
+                    Builders<Event>.Filter.And(
+                        Builders<Event>.Filter.Eq(e => e.CreatedAt, createdAtFilter),
+                        Builders<Event>.Filter.Lt(e => e.Id, idFilter)
+                    )
+                );
+            }
+
+            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
             var events = await eventsCollection
                 .Find(filter)
+                .SortByDescending(e => e.CreatedAt)
+                .ThenByDescending(e => e.Id)
+                .Limit(limit + 1)
                 .ToListAsync();
 
-            return events;
+            bool hasMore = events.Count > limit;
+            events = events.Take(limit).ToList();
+
+            string nextCursor = null;
+            if(hasMore)
+            {
+                var lastEvent = events[^1];
+                nextCursor = CursorHelper.EncodeCursor(new CursorHelper.EventCursor(lastEvent.CreatedAt, lastEvent.Id.ToString()));
+            }
+
+            var paginatedResponse = new PaginatedEventsResponse
+            {
+                Events = events,
+                NextCursor = nextCursor,
+                HasMore = hasMore
+            };
+
+            return paginatedResponse;
         }
     }
 }
