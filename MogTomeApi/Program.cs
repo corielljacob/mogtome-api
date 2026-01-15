@@ -28,7 +28,15 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MongoService>();
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession();
+
+builder.Services.AddSession(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
+});
+
 builder.Services.AddSingleton(new HttpClient());
 
 var app = builder.Build();
