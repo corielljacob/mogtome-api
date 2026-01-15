@@ -45,6 +45,8 @@ app.UseSession();
 
 app.UseCors("AllowMogTome");
 
+app.UseSession();
+
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
