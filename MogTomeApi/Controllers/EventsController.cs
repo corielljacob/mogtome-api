@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MogTomeApi.Data;
-using MogTomeApi.HubClients;
 using MogTomeApi.Hubs;
 using MogTomeApi.Services;
 

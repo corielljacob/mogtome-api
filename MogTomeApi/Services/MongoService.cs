@@ -32,6 +32,21 @@ namespace MogTomeApi.Services
             return activeMembers;
         }
 
+        public async Task<FreeCompanyMember> GetFreeCompanyMemberByDiscordId(string discordId)
+        {
+            var memberCollection = _client.GetDatabase("kupo-life").GetCollection<FreeCompanyMember>("members");
+            var filter = Builders<FreeCompanyMember>.Filter.And(
+                Builders<FreeCompanyMember>.Filter.Eq(member => member.DiscordId, discordId), 
+                Builders<FreeCompanyMember>.Filter.Eq(member => member.ActiveMember, true)
+            );
+
+            var freeCompanyMember = await memberCollection
+                .Find(filter)
+                .SingleAsync();
+
+            return freeCompanyMember;
+        }
+
         public async Task<PaginatedEventsResponse> GetFreeCompanyEvents(string cursor, int limit)
         {
             var decodedCursor = CursorHelper.DecodeCursor(cursor);

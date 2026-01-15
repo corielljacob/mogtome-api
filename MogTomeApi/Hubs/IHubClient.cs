@@ -1,6 +1,6 @@
 ﻿using MogTomeApi.Data;
 
-namespace MogTomeApi.HubClients
+namespace MogTomeApi.Hubs
 {
     public interface IHubClient
     {

@@ -13,5 +13,6 @@ namespace MogTomeApi.Data
         public DateTime LastUpdatedDate { get; set; }
         public string MembershipHistory { get; set; }
         public string AvatarLink { get; set; }
+        public string DiscordId { get; set; }
     }
 }
