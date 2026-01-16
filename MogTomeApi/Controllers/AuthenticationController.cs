@@ -175,7 +175,7 @@ namespace MogTomeApi.Controllers
                 return false;
             }
 
-            if (redirectUri.Scheme != Uri.UriSchemeHttps)
+            if (redirectUri.Scheme != Uri.UriSchemeHttps && redirectUri.Host != "localhost")
                 return false;
 
             if (string.IsNullOrEmpty(redirectUri.UserInfo) == false)
