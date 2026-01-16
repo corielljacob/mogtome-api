@@ -63,40 +63,48 @@ namespace MogTomeApi.Controllers
         [HttpGet("discord/callback")]
         public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
         {
-            var expectedState = HttpContext.Session.GetString("discord_oauth_state");
-
-            if (state != expectedState)
+            try
             {
-                return BadRequest("State validation failed");
-            }
+                var expectedState = HttpContext.Session.GetString("discord_oauth_state");
 
-            var token = await _discordService.GetDiscordTokenUsingCode(code);
+                if (state != expectedState)
+                {
+                    return BadRequest("State validation failed");
+                }
 
-            if(token == null)
+                var token = await _discordService.GetDiscordTokenUsingCode(code);
+
+                if (token == null)
+                {
+                    return Redirect(_siteUri);
+                }
+
+                // Fetch discord info to populate identity
+                var discordUser = await _discordService.GetDiscordUserInformation(token);
+
+                // Using discord identity, create a JWT for the FE to use
+                var jwt = await _jwtService.CreateAccessToken(discordUser.Id);
+                var refreshToken = JwtService.CreateRefreshToken();
+
+                // Save token info to database
+                await _mongoService.UpsertMemberToken(discordUser.Id, refreshToken, token);
+                WriteRefreshTokenToCookie(refreshToken.Token);
+
+                // Process redirect if stored in session state
+                var redirectUri = HttpContext.Session.GetString("redirect");
+                if (string.IsNullOrEmpty(redirectUri) || DetermineIfRedirectIsValid(redirectUri) == false)
+                {
+                    redirectUri = _config["Authentication:SiteUri"];
+                }
+
+                redirectUri = $"{redirectUri}?token={jwt}";
+                return Redirect(redirectUri);
+            } 
+            catch(Exception ex)
             {
+                _logger.LogError(ex, "Error during Discord OAuth callback");
                 return Redirect(_siteUri);
             }
-
-            // Fetch discord info to populate identity
-            var discordUser = await _discordService.GetDiscordUserInformation(token);
-
-            // Using discord identity, create a JWT for the FE to use
-            var jwt = await _jwtService.CreateAccessToken(discordUser.Id);
-            var refreshToken = JwtService.CreateRefreshToken();
-
-            // Save token info to database
-            await _mongoService.UpsertMemberToken(discordUser.Id, refreshToken, token);
-            WriteRefreshTokenToCookie(refreshToken.Token);
-
-            // Process redirect if stored in session state
-            var redirectUri = HttpContext.Session.GetString("redirect");
-            if(string.IsNullOrEmpty(redirectUri) || DetermineIfRedirectIsValid(redirectUri) == false)
-            {
-                redirectUri = _config["Authentication:SiteUri"];
-            }
-
-            redirectUri = $"{redirectUri}?token={jwt}";
-            return Redirect(redirectUri);
         }
 
         [HttpGet("discord/refresh")]
