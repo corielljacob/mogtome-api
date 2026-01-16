@@ -3,6 +3,7 @@ using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using MogTomeApi.Data;
 using MogTomeApi.Services;
+using System;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -19,6 +20,7 @@ namespace MogTomeApi.Controllers
         private readonly string _discordClientId;
         private readonly string _discordClientSecret;
         private readonly string _callbackUri;
+        private readonly string _siteUri;
         private readonly IConfiguration _config;
 
         public AuthenticationController(ILogger<AuthenticationController> logger, MongoService mongoService, HttpClient httpClient, IConfiguration config)
@@ -30,11 +32,24 @@ namespace MogTomeApi.Controllers
             _discordClientSecret = Environment.GetEnvironmentVariable("MogTomeClientSecret", EnvironmentVariableTarget.Process);
             _config = config;
             _callbackUri = $"{_config["Authentication:Host"]}/auth/discord/callback";
+            _siteUri = _config["Authentication:SiteUri"];
         }
 
         [HttpGet("discord/login")]
-        public IActionResult Login()
+        public IActionResult Login([FromQuery] string redirect)
         {
+            HttpContext.Session.Clear();
+            var isValidRedirect = DetermineIfRedirectIsValid(redirect);
+
+            if(isValidRedirect)
+            {
+                HttpContext.Session.SetString("redirect", redirect);
+            }
+            else
+            {
+                HttpContext.Session.SetString("redirect", _siteUri);
+            }
+
             var state = Guid.NewGuid().ToString("N");
             HttpContext.Session.SetString("discord_oauth_state", state);
 
@@ -63,13 +78,25 @@ namespace MogTomeApi.Controllers
 
             var token = await ExchangeCodeForToken(code);
 
-            // fetch discord info to populate identity
+            if(token == null)
+            {
+                return Redirect(_siteUri);
+            }
+
+            // Fetch discord info to populate identity
             var discordUser = await GetDiscordUserInformation(token.AccessToken);
 
             // Using discord identity, create a JWT for the FE to use
             var jwt = await CreateJwtFromDiscordUser(discordUser);
 
-            var redirectUri = $"https://mogtome.com?token={jwt}";
+            // Process redirect if stored in session state
+            var redirectUri = HttpContext.Session.GetString("redirect");
+            if(string.IsNullOrEmpty(redirectUri) || DetermineIfRedirectIsValid(redirectUri) == false)
+            {
+                redirectUri = _config["Authentication:SiteUri"];
+            }
+
+            redirectUri = $"{redirectUri}?token={jwt}";
             return Redirect(redirectUri);
         }
 
@@ -85,11 +112,14 @@ namespace MogTomeApi.Controllers
             });
 
             var response = await _httpClient.PostAsync(_config["Authentication:DiscordTokenUri"], content);
+            var json = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to exchange code for token: {StatusCode} - {Response}", response.StatusCode, json);
                 return null;
+            }
 
-            var json = await response.Content.ReadAsStringAsync();
             return JsonSerializer.Deserialize<DiscordToken>(json);
         }
 
@@ -133,6 +163,31 @@ namespace MogTomeApi.Controllers
             var tokenString = jwtHandler.CreateToken(descriptor);
 
             return tokenString;
+        }
+
+        private bool DetermineIfRedirectIsValid(string redirect)
+        {
+            if (string.IsNullOrEmpty(redirect))
+                return false;
+
+            if(Uri.TryCreate(redirect, UriKind.Absolute, out var redirectUri) == false)
+            {
+                return false;
+            }
+
+            if (redirectUri.Scheme != Uri.UriSchemeHttps)
+                return false;
+
+            if (string.IsNullOrEmpty(redirectUri.UserInfo) == false)
+                return false;
+
+            var allowedHosts = _config["Authentication:AllowedRedirectHosts"].Split(';');
+            if (allowedHosts.Contains(redirectUri.Host, StringComparer.OrdinalIgnoreCase) == false)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
