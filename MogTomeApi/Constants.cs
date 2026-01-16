@@ -3,5 +3,8 @@
     public class Constants
     {
         public readonly static string ConnectionStringId = "FC_Tracker_Connection_String";
+        public readonly static string MoogleKnight = "Moogle Knight";
+        public readonly static string PaissaTrainer = "Paissa Trainer";
+        public readonly static string PassiveToast = "Passive Toast";
     }
 }

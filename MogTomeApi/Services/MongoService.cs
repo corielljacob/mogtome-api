@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http.HttpResults;
-using MogTomeApi.Data;
+﻿using MogTomeApi.Data;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using static MogTomeApi.Controllers.EventsController;
@@ -24,6 +23,27 @@ namespace MogTomeApi.Services
         {
             var memberCollection = _client.GetDatabase("kupo-life").GetCollection<FreeCompanyMember>("members");
             var filter = Builders<FreeCompanyMember>.Filter.Empty;
+            var freeCompanyMembers = await memberCollection
+                .Find(filter)
+                .ToListAsync();
+
+            var activeMembers = freeCompanyMembers.Where(member => member.ActiveMember).ToList();
+            return activeMembers;
+        }
+
+        public async Task<List<FreeCompanyStaffMember>> GetFreeCompanyStaff()
+        {
+            var memberCollection = _client.GetDatabase("kupo-life").GetCollection<FreeCompanyStaffMember>("members");
+
+            var filter = Builders<FreeCompanyStaffMember>.Filter.And(
+                Builders<FreeCompanyStaffMember>.Filter.Or(
+                    Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.MoogleKnight),
+                    Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.PaissaTrainer)
+                ),
+                Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.ActiveMember, true),
+                Builders<FreeCompanyStaffMember>.Filter.Ne(member => member.Name, Constants.PassiveToast)
+            );
+
             var freeCompanyMembers = await memberCollection
                 .Find(filter)
                 .ToListAsync();

@@ -38,11 +38,39 @@ namespace MogTomeApi.Controllers
                 return StatusCode(500, "An error occurred when fetching members");
             }
         }
+
+        [HttpGet("staff")]
+        public async Task<ActionResult<GetStaffResponse>> GetStaff()
+        {
+            try
+            {
+                var staff = await _mongoService.GetFreeCompanyStaff();
+
+                var response = new GetStaffResponse
+                {
+                    Staff = staff,
+                    TotalCount = staff.Count
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching staff: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching staff");
+            }
+        }
     }
     
     public class GetMembersResponse
     {
         public int TotalCount { get; set; }
         public required IEnumerable<FreeCompanyMember> Members { get; set; }
+    }
+
+    public class GetStaffResponse
+    {
+        public int TotalCount { get; set; }
+        public required IEnumerable<FreeCompanyStaffMember> Staff { get; set; }
     }
 }
