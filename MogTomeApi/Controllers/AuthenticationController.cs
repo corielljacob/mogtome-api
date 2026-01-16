@@ -1,12 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.JsonWebTokens;
-using Microsoft.IdentityModel.Tokens;
-using MogTomeApi.Data;
 using MogTomeApi.Services;
-using System;
-using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
 
 namespace MogTomeApi.Controllers
 {
@@ -16,23 +10,23 @@ namespace MogTomeApi.Controllers
     {
         private readonly ILogger<AuthenticationController> _logger;
         private readonly MongoService _mongoService;
-        private readonly HttpClient _httpClient;
+        private readonly JwtService _jwtService;
+        private readonly DiscordService _discordService;
         private readonly string _discordClientId;
-        private readonly string _discordClientSecret;
         private readonly string _callbackUri;
         private readonly string _siteUri;
         private readonly IConfiguration _config;
 
-        public AuthenticationController(ILogger<AuthenticationController> logger, MongoService mongoService, HttpClient httpClient, IConfiguration config)
+        public AuthenticationController(ILogger<AuthenticationController> logger, MongoService mongoService, IConfiguration config, JwtService jwtService, DiscordService discordService)
         {
             _logger = logger;
             _mongoService = mongoService;
-            _httpClient = httpClient;
             _discordClientId = Environment.GetEnvironmentVariable("MogTomeClientId", EnvironmentVariableTarget.Process);
-            _discordClientSecret = Environment.GetEnvironmentVariable("MogTomeClientSecret", EnvironmentVariableTarget.Process);
             _config = config;
             _callbackUri = $"{_config["Authentication:Host"]}/auth/discord/callback";
             _siteUri = _config["Authentication:SiteUri"];
+            _jwtService = jwtService;
+            _discordService = discordService;
         }
 
         [HttpGet("discord/login")]
@@ -76,7 +70,7 @@ namespace MogTomeApi.Controllers
                 return BadRequest("State validation failed");
             }
 
-            var token = await ExchangeCodeForToken(code);
+            var token = await _discordService.GetDiscordTokenUsingCode(code);
 
             if(token == null)
             {
@@ -84,10 +78,15 @@ namespace MogTomeApi.Controllers
             }
 
             // Fetch discord info to populate identity
-            var discordUser = await GetDiscordUserInformation(token.AccessToken);
+            var discordUser = await _discordService.GetDiscordUserInformation(token);
 
             // Using discord identity, create a JWT for the FE to use
-            var jwt = await CreateJwtFromDiscordUser(discordUser);
+            var jwt = await _jwtService.CreateAccessToken(discordUser.Id);
+            var refreshToken = JwtService.CreateRefreshToken();
+
+            // Save token info to database
+            await _mongoService.UpsertMemberToken(discordUser.Id, refreshToken, token);
+            WriteRefreshTokenToCookie(refreshToken.Token);
 
             // Process redirect if stored in session state
             var redirectUri = HttpContext.Session.GetString("redirect");
@@ -100,69 +99,44 @@ namespace MogTomeApi.Controllers
             return Redirect(redirectUri);
         }
 
-        private async Task<DiscordToken> ExchangeCodeForToken(string code)
+        [HttpGet("discord/refresh")]
+        public async Task<IActionResult> Refresh()
         {
-            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            var refreshToken = Request.Cookies["refresh_token"];
+
+            if (refreshToken == null)
+                return Unauthorized();
+
+            var memberToken = await _mongoService.GetMemberRefreshTokenInfo(refreshToken);
+
+            if(memberToken == null || memberToken.CustomRefreshTokenRevoked || memberToken.CustomRefreshTokenExpiresAt <= DateTime.UtcNow)
+                return Unauthorized();
+
+            var newRefreshToken = JwtService.CreateRefreshToken();
+            var newJwt = await _jwtService.CreateAccessToken(memberToken.DiscordId);
+
+            await _mongoService.UpdateMemberRefreshToken(memberToken.DiscordId, newRefreshToken);
+            WriteRefreshTokenToCookie(newRefreshToken.Token);
+
+            return Ok(new
             {
-                ["client_id"] = _discordClientId,
-                ["client_secret"] = _discordClientSecret,
-                ["grant_type"] = "authorization_code",
-                ["code"] = code,
-                ["redirect_uri"] = _callbackUri
+                token = newJwt
             });
-
-            var response = await _httpClient.PostAsync(_config["Authentication:DiscordTokenUri"], content);
-            var json = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _logger.LogError("Failed to exchange code for token: {StatusCode} - {Response}", response.StatusCode, json);
-                return null;
-            }
-
-            return JsonSerializer.Deserialize<DiscordToken>(json);
         }
 
-        private async Task<DiscordUser> GetDiscordUserInformation(string accessToken)
+        private void WriteRefreshTokenToCookie(string refreshToken)
         {
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await _httpClient.GetAsync("https://discord.com/api/users/@me");
-            var responseJson = await response.Content.ReadAsStringAsync();
-            var discordUser = JsonSerializer.Deserialize<DiscordUser>(responseJson);
-
-            return discordUser;
-        }
-
-        private async Task<string> CreateJwtFromDiscordUser(DiscordUser discordUser)
-        {
-            var freeCompanyMember = await _mongoService.GetFreeCompanyMemberByDiscordId(discordUser.Id);
-
-            var claims = new Dictionary<string, object>
-            {
-                ["memberName"] = freeCompanyMember.Name,
-                ["memberRank"] = freeCompanyMember.FreeCompanyRank,
-                ["memberPortraitUrl"] = freeCompanyMember.AvatarLink
-            };
-
-            var secretKey = Environment.GetEnvironmentVariable("MogTomeApiSigningSecret", EnvironmentVariableTarget.Process);
-            var signingkey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-
-            var descriptor = new SecurityTokenDescriptor
-            {
-                Issuer = _config["Authentication:Host"],
-                Audience = _config["Authentication:Audience"],
-                Claims = claims,
-                IssuedAt = null,
-                NotBefore = DateTime.UtcNow,
-                Expires = DateTime.UtcNow.AddMinutes(60),
-                SigningCredentials = new SigningCredentials(signingkey, SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var jwtHandler = new JsonWebTokenHandler { SetDefaultTimesOnTokenCreation = false };
-            var tokenString = jwtHandler.CreateToken(descriptor);
-
-            return tokenString;
+            Response.Cookies.Append(
+                "refresh_token",
+                refreshToken,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(14)
+                }
+            );
         }
 
         private bool DetermineIfRedirectIsValid(string redirect)

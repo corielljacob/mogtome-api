@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MogTomeApi.Hubs;
 using MogTomeApi.Services;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +30,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MongoService>();
+builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<DiscordService>();
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -38,6 +43,27 @@ builder.Services.AddSession(options =>
 });
 
 builder.Services.AddSingleton(new HttpClient());
+
+var secretKey = Environment.GetEnvironmentVariable("MogTomeApiSigningSecret", EnvironmentVariableTarget.Process);
+var signingkey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Authentication:Host"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Authentication:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = signingkey
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 

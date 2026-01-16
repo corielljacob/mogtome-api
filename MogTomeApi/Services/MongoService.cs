@@ -2,6 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using static MogTomeApi.Controllers.EventsController;
+using static MogTomeApi.Services.JwtService;
 
 namespace MogTomeApi.Services
 {
@@ -38,7 +39,8 @@ namespace MogTomeApi.Services
             var filter = Builders<FreeCompanyStaffMember>.Filter.And(
                 Builders<FreeCompanyStaffMember>.Filter.Or(
                     Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.MoogleKnight),
-                    Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.PaissaTrainer)
+                    Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.PaissaTrainer),
+                    Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.FreeCompanyRank, Constants.MoogleGuardian)
                 ),
                 Builders<FreeCompanyStaffMember>.Filter.Eq(member => member.ActiveMember, true),
                 Builders<FreeCompanyStaffMember>.Filter.Ne(member => member.Name, Constants.PassiveToast)
@@ -114,6 +116,78 @@ namespace MogTomeApi.Services
             };
 
             return paginatedResponse;
+        }
+
+        public async Task<MemberToken> GetMemberRefreshTokenInfo(string refreshToken)
+        {
+            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
+
+            var filter = Builders<MemberToken>.Filter.Eq(member => member.CustomRefreshToken, refreshToken);
+
+            var memberToken = await tokenCollection
+                .Find(filter)
+                .SingleAsync();
+
+            return memberToken;
+        }
+
+        public async Task<MemberToken> GetMemberTokenByDiscordId(string discordId)
+        {
+            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
+
+            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, discordId);
+
+            var memberToken = await tokenCollection
+                .Find(filter)
+                .SingleOrDefaultAsync();
+
+            return memberToken;
+        }
+
+        public async Task UpsertMemberToken(string discordId, RefreshToken refreshToken, DiscordToken discordToken)
+        {
+            var memberToken = await GetMemberTokenByDiscordId(discordId);
+
+            if (memberToken == null)
+            {
+                memberToken = new MemberToken();
+            }
+
+            memberToken.DiscordId = discordId;
+            memberToken.CustomRefreshToken = refreshToken.Token;
+            memberToken.CustomRefreshTokenRevoked = refreshToken.Revoked;
+            memberToken.CustomRefreshTokenExpiresAt = refreshToken.ExpiresAt;
+            memberToken.DiscordToken = discordToken.AccessToken;
+            memberToken.DiscordRefreshToken = discordToken.RefreshToken;
+
+            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
+            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
+            await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = true });
+        }
+
+        public async Task UpdateMemberDiscordToken(string discordId, DiscordToken discordToken)
+        {
+            var memberToken = await GetMemberTokenByDiscordId(discordId);
+
+            memberToken.DiscordToken = discordToken.AccessToken;
+            memberToken.DiscordRefreshToken = discordToken.RefreshToken;
+
+            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
+            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
+            await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = false });
+        }
+
+        public async Task UpdateMemberRefreshToken(string discordId, RefreshToken refreshToken)
+        {
+            var memberToken = await GetMemberTokenByDiscordId(discordId);
+
+            memberToken.CustomRefreshToken = refreshToken.Token;
+            memberToken.CustomRefreshTokenRevoked = refreshToken.Revoked;
+            memberToken.CustomRefreshTokenExpiresAt = refreshToken.ExpiresAt;
+
+            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
+            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
+            await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = false });
         }
     }
 }
