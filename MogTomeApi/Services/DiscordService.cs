@@ -30,7 +30,7 @@ namespace MogTomeApi.Services
             var expirationPadding = _config.GetValue<int>("Authentication:DiscordTokenExpirationPaddingInSeconds");
             var refreshTokenInDatabase = false;
 
-            if (discordToken.ExpiresIn <= 900000)
+            if (discordToken.ExpiresIn <= expirationPadding)
             {
                 discordToken = await RefreshDiscordToken(discordToken);
                 refreshTokenInDatabase = true;
