@@ -14,5 +14,6 @@ namespace MogTomeApi.Data
         public string MembershipHistory { get; set; }
         public string AvatarLink { get; set; }
         public string DiscordId { get; set; }
+        public bool HasTemporaryKnighthood { get; set; }
     }
 }

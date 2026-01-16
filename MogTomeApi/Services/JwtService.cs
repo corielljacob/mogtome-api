@@ -36,6 +36,8 @@ namespace MogTomeApi.Services
             {
                 ["memberName"] = freeCompanyMember.Name,
                 ["memberRank"] = freeCompanyMember.FreeCompanyRank,
+                ["hasKnighthood"] = freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian,
+                ["hasTemporaryKnighthood"] = freeCompanyMember.HasTemporaryKnighthood,
                 ["memberPortraitUrl"] = freeCompanyMember.AvatarLink
             };
 
