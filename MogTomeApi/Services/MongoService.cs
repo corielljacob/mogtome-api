@@ -189,5 +189,16 @@ namespace MogTomeApi.Services
             var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
             await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = false });
         }
+
+        public async Task SetUserBiography(string discordId, string biography)
+        {
+            var membersCollection = _client.GetDatabase("kupo-life").GetCollection<FreeCompanyMember>("members");
+            var filter = Builders<FreeCompanyMember>.Filter.Eq(member => member.DiscordId, discordId);
+
+            var update = Builders<FreeCompanyMember>.Update
+                .Set(member => member.Biography, biography);
+
+            await membersCollection.UpdateOneAsync(filter, update);
+        }
     }
 }

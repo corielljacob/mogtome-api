@@ -34,6 +34,7 @@ namespace MogTomeApi.Services
 
             var claims = new Dictionary<string, object>
             {
+                ["discordId"] = discordUserId,
                 ["memberName"] = freeCompanyMember.Name,
                 ["memberRank"] = freeCompanyMember.FreeCompanyRank,
                 ["hasKnighthood"] = freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian,
