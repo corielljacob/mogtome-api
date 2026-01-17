@@ -103,7 +103,7 @@ namespace MogTomeApi.Controllers
             catch(Exception ex)
             {
                 _logger.LogError(ex, "Error during Discord OAuth callback");
-                return Redirect(_siteUri);
+                return Redirect($"{_siteUri}?missingUserData=true");
             }
         }
 
