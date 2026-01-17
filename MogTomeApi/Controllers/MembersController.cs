@@ -23,10 +23,20 @@ namespace MogTomeApi.Controllers
             try
             {
                 var members = await _mongoService.GetFreeCompanyMembers();
+
+                var memberResponse = members.Select(member => new Member
+                {
+                    Name = member.Name,
+                    FreeCompanyRank = member.FreeCompanyRank,
+                    FreeCompanyRankIcon = member.FreeCompanyRankIcon,
+                    CharacterId = member.CharacterId,
+                    ActiveMember = member.ActiveMember,
+                    AvatarLink = member.AvatarLink
+                });
                 
                 var response = new GetMembersResponse
                 {
-                    Members = members,
+                    Members = memberResponse,
                     TotalCount = members.Count
                 };
 
@@ -65,7 +75,17 @@ namespace MogTomeApi.Controllers
     public class GetMembersResponse
     {
         public int TotalCount { get; set; }
-        public required IEnumerable<FreeCompanyMember> Members { get; set; }
+        public required IEnumerable<Member> Members { get; set; }
+    }
+
+    public class Member
+    {
+        public string Name { get; set; }
+        public string FreeCompanyRank { get; set; }
+        public string FreeCompanyRankIcon { get; set; }
+        public string CharacterId { get; set; }
+        public bool ActiveMember { get; set; }
+        public string AvatarLink { get; set; }
     }
 
     public class GetStaffResponse
