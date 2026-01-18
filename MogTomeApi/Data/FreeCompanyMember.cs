@@ -16,5 +16,6 @@ namespace MogTomeApi.Data
         public string DiscordId { get; set; }
         public bool HasTemporaryKnighthood { get; set; }
         public string Biography { get; set; }
+        public DateTime? FirstMogTomeLogin { get; set; }
     }
 }
