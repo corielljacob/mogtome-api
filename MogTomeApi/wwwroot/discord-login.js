@@ -1,9 +1,9 @@
 ﻿(function () {
-    function addDiscordButton() {
-        const topbar = document.querySelector(".swagger-ui .topbar");
+    function placeButton() {
+        const authWrapper = document.querySelector(".swagger-ui .auth-wrapper");
 
-        if (!topbar) {
-            setTimeout(addDiscordButton, 300);
+        if (!authWrapper) {
+            setTimeout(placeButton, 200);
             return;
         }
 
@@ -11,13 +11,6 @@
         if (document.getElementById("discord-login-btn")) {
             return;
         }
-
-        // Create a container that pushes content to the right
-        const rightContainer = document.createElement("div");
-        rightContainer.style.display = "flex";
-        rightContainer.style.flex = "1";
-        rightContainer.style.justifyContent = "flex-end";
-        rightContainer.style.alignItems = "center";
 
         const btn = document.createElement("button");
         btn.id = "discord-login-btn";
@@ -44,11 +37,9 @@
             });
         };
 
-        rightContainer.appendChild(btn);
-
-        // Insert the right‑side container into the topbar
-        topbar.appendChild(rightContainer);
+        // Insert button immediately before the Authorize button
+        authWrapper.parentNode.insertBefore(btn, authWrapper);
     }
 
-    addDiscordButton();
+    placeButton();
 })();
