@@ -144,7 +144,7 @@ namespace MogTomeApi.Controllers
                     return Forbid();
                 }
 
-                var approveResult = await _mongoService.ApproveSubmission(submissionId);
+                var approveResult = await _mongoService.ApproveSubmission(submissionId, discordId);
                 if (approveResult.Equals(HttpStatusCode.NotFound))
                 {
                     return NotFound("Submission not found");
@@ -160,8 +160,50 @@ namespace MogTomeApi.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError("Failed to create biography submission for user: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
-                return StatusCode(500, "An error occurred when creating the biography submission");
+                _logger.LogError("Failed to approve biography submission for user: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when approving the biography submission");
+            }
+        }
+
+        [HttpPost("/submission/reject/{submissionId}")]
+        [Authorize]
+        public async Task<IActionResult> RejectSubmission([FromRoute] Guid submissionId)
+        {
+            try
+            {
+                var memberRank = User.FindFirst("memberRank")?.Value;
+                var discordId = User.FindFirst("discordId")?.Value;
+                bool.TryParse(User.FindFirst("hasKnighthood")?.Value, out var hasKnighthood);
+                bool.TryParse(User.FindFirst("hasTemporaryKnighthood")?.Value, out var hasTemporaryKnighthood);
+
+                if (discordId == null)
+                {
+                    return Forbid();
+                }
+
+                if (hasKnighthood == false && hasTemporaryKnighthood == false)
+                {
+                    return Forbid();
+                }
+
+                var rejectResult = await _mongoService.RejectSubmission(submissionId, discordId);
+                if (rejectResult.Equals(HttpStatusCode.NotFound))
+                {
+                    return NotFound("Submission not found");
+                }
+                else if (rejectResult.Equals(HttpStatusCode.InternalServerError))
+                {
+                    return StatusCode(500, "An error occurred when rejecting the submission");
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to reject biography submission for user: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when rejecting the biography submission");
             }
         }
 

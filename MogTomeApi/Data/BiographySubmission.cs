@@ -10,5 +10,7 @@ namespace MogTomeApi.Data
         public string Biography { get; set; }
         public string Status { get; set; }
         public DateTime SubmittedAt { get; set; }
+        public string ApprovedByDiscordId { get; set; }
+        public string RejectedByDiscordId { get; set; }
     }
 }

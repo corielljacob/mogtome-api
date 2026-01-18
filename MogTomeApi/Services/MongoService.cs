@@ -232,7 +232,7 @@ namespace MogTomeApi.Services
             return submissions;
         }
 
-        public async Task<HttpStatusCode> ApproveSubmission(Guid submissionId)
+        public async Task<HttpStatusCode> ApproveSubmission(Guid submissionId, string approvedBy)
         {
             try
             {
@@ -251,7 +251,8 @@ namespace MogTomeApi.Services
                 await SetUserBiography(submission.SubmittedByDiscordId, submission.Biography);
 
                 var update = Builders<BiographySubmission>.Update
-                .Set(submission => submission.Status, "Approved");
+                    .Set(submission => submission.Status, "Approved")
+                    .Set(submission => submission.ApprovedByDiscordId, approvedBy);
 
                 await membersCollection.UpdateOneAsync(filter, update);
 
@@ -260,6 +261,37 @@ namespace MogTomeApi.Services
             catch (Exception ex)
             {
                 _logger.LogError("Failed to approve biography submission {SubmissionId}: {Message}\nStack Trace:{Trace}", submissionId, ex.Message, ex.StackTrace);
+                return HttpStatusCode.InternalServerError;
+            }
+        }
+
+        public async Task<HttpStatusCode> RejectSubmission(Guid submissionId, string rejectedBy)
+        {
+            try
+            {
+                var membersCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+                var filter = Builders<BiographySubmission>.Filter.Eq(submission => submission.SubmissionId, submissionId);
+
+                var submission = await membersCollection
+                    .Find(filter)
+                    .SingleOrDefaultAsync();
+
+                if (submission == null)
+                {
+                    return HttpStatusCode.NotFound;
+                }
+
+                var update = Builders<BiographySubmission>.Update
+                    .Set(submission => submission.Status, "Rejected")
+                    .Set(submission => submission.RejectedByDiscordId, rejectedBy);
+
+                await membersCollection.UpdateOneAsync(filter, update);
+
+                return HttpStatusCode.OK;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to reject biography submission {SubmissionId}: {Message}\nStack Trace:{Trace}", submissionId, ex.Message, ex.StackTrace);
                 return HttpStatusCode.InternalServerError;
             }
         }
