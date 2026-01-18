@@ -306,5 +306,70 @@ namespace MogTomeApi.Services
 
             await membersCollection.UpdateOneAsync(filter, update);
         }
+
+        public async Task<BiographySubmission> GetUserSubmissionInfo(string discordId)
+        {
+            var submissionsCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+            var filter = Builders<BiographySubmission>.Filter.Eq(submission => submission.SubmittedByDiscordId, discordId);
+
+            var submissions = await submissionsCollection
+                .Find(filter)
+                .ToListAsync();
+
+            if(submissions.Any(submission => submission.Status == "Pending") == false && submissions.Any(submission => submission.Status == "Approved") == false)
+            {
+                return null;
+            }
+
+            if(submissions.Any(submission => submission.Status == "Pending") == false)
+            {
+                var submission = submissions
+                    .Where(submission => submission.Status == "Approved")
+                    .OrderByDescending(submission => submission.SubmittedAt)
+                    .FirstOrDefault();
+
+                return submission;
+            }
+
+            var lastPendingSubmission = submissions
+                .Where(submission => submission.Status == "Pending")
+                .OrderByDescending(submission => submission.SubmittedAt)
+                .FirstOrDefault();
+
+            return lastPendingSubmission;
+        }
+
+        public async Task<HttpStatusCode> EditSubmission(Guid submissionId, string biography)
+        {
+            try
+            {
+                var submissionCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+                var filter = Builders<BiographySubmission>.Filter.And(
+                    Builders<BiographySubmission>.Filter.Eq(submission => submission.SubmissionId, submissionId),
+                    Builders<BiographySubmission>.Filter.Eq(submission => submission.Status, "Pending")
+                );
+
+                var submission = await submissionCollection
+                    .Find(filter)
+                    .SingleOrDefaultAsync();
+
+                if (submission == null)
+                {
+                    return HttpStatusCode.NotFound;
+                }
+
+                var update = Builders<BiographySubmission>.Update
+                    .Set(member => member.Biography, biography);
+
+                await submissionCollection.UpdateOneAsync(filter, update);
+
+                return HttpStatusCode.OK;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to edit biography submission {SubmissionId}: {Message}\nStack Trace:{Trace}", submissionId, ex.Message, ex.StackTrace);
+                return HttpStatusCode.InternalServerError;
+            }
+        }
     }
 }

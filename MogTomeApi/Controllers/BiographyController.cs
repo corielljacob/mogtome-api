@@ -123,6 +123,84 @@ namespace MogTomeApi.Controllers
             }
         }
 
+        [HttpGet("/submission/{memberId}")]
+        [Authorize]
+        public async Task<ActionResult<BiographySubmission>> GetUserSubmissionInfo([FromRoute] string memberId)
+        {
+            try
+            {
+                var memberRank = User.FindFirst("memberRank")?.Value;
+                var discordId = User.FindFirst("discordId")?.Value;
+                bool.TryParse(User.FindFirst("hasKnighthood")?.Value, out var hasKnighthood);
+                bool.TryParse(User.FindFirst("hasTemporaryKnighthood")?.Value, out var hasTemporaryKnighthood);
+
+                if (discordId == null)
+                {
+                    return Forbid();
+                }
+
+                if (memberRank != "Paissa Trainer" && hasKnighthood == false && hasTemporaryKnighthood == false)
+                {
+                    return Forbid();
+                }
+
+                var submission = await _mongoService.GetUserSubmissionInfo(memberId);
+
+                if(submission is null)
+                {
+                    return NoContent();
+                }
+                else
+                {
+                    return Ok(submission);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to retrieve biography submissions: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when retrieving biography submissions");
+            }
+        }
+
+        [HttpPost("/submission/edit/{submissionId}")]
+        [Authorize]
+        public async Task<ActionResult<BiographySubmission>> EditSubmission([FromRoute] Guid submissionId, [FromBody] CreateBiographyRequest createBiographyRequest)
+        {
+            try
+            {
+                var memberRank = User.FindFirst("memberRank")?.Value;
+                var discordId = User.FindFirst("discordId")?.Value;
+                bool.TryParse(User.FindFirst("hasKnighthood")?.Value, out var hasKnighthood);
+                bool.TryParse(User.FindFirst("hasTemporaryKnighthood")?.Value, out var hasTemporaryKnighthood);
+
+                if (discordId == null)
+                {
+                    return Forbid();
+                }
+
+                if (memberRank != "Paissa Trainer" && hasKnighthood == false && hasTemporaryKnighthood == false)
+                {
+                    return Forbid();
+                }
+
+                var submission = await _mongoService.EditSubmission(submissionId, createBiographyRequest.Biography);
+
+                if (submission == HttpStatusCode.NotFound)
+                {
+                    return NotFound("Submission not found");
+                }
+                else
+                {
+                    return Ok();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to retrieve biography submissions: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when retrieving biography submissions");
+            }
+        }
+
         [HttpPost("/submission/approve/{submissionId}")]
         [Authorize]
         public async Task<IActionResult> ApproveSubmission([FromRoute] Guid submissionId)
