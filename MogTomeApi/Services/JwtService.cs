@@ -39,8 +39,7 @@ namespace MogTomeApi.Services
                 ["memberRank"] = freeCompanyMember.FreeCompanyRank,
                 ["hasKnighthood"] = freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian,
                 ["hasTemporaryKnighthood"] = freeCompanyMember.HasTemporaryKnighthood,
-                ["memberPortraitUrl"] = freeCompanyMember.AvatarLink,
-                ["firstMogTomeLoginDate"] = freeCompanyMember.FirstMogTomeLogin
+                ["memberPortraitUrl"] = freeCompanyMember.AvatarLink
             };
 
             var secretKey = Environment.GetEnvironmentVariable("MogTomeApiSigningSecret", EnvironmentVariableTarget.Process);
@@ -64,6 +63,10 @@ namespace MogTomeApi.Services
                 var loginDate = DateTime.UtcNow;
                 await _mongoService.SetFirstTimeMogTomeLogin(discordUserId, loginDate);
                 descriptor.Claims.Add("firstMogTomeLoginDate", loginDate);
+            }
+            else
+            {
+                descriptor.Claims.Add("firstMogTomeLoginDate", freeCompanyMember.FirstMogTomeLogin);
             }
 
             var tokenString = jwtHandler.CreateToken(descriptor);

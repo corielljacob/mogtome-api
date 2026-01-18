@@ -219,7 +219,6 @@ namespace MogTomeApi.Controllers
                 var jwt = await _jwtService.CreateAccessToken(discordUser.Id);
                 var refreshToken = JwtService.CreateRefreshToken();
 
-
                 return Redirect($"/discord-complete.html?jwt={jwt}");
             }
             catch (Exception ex)
