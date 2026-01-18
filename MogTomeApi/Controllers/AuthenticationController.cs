@@ -14,6 +14,7 @@ namespace MogTomeApi.Controllers
         private readonly DiscordService _discordService;
         private readonly string _discordClientId;
         private readonly string _callbackUri;
+        private readonly string _swaggerCallbackUri;
         private readonly string _siteUri;
         private readonly IConfiguration _config;
 
@@ -24,6 +25,7 @@ namespace MogTomeApi.Controllers
             _discordClientId = Environment.GetEnvironmentVariable("MogTomeClientId", EnvironmentVariableTarget.Process);
             _config = config;
             _callbackUri = $"{_config["Authentication:Host"]}/auth/discord/callback";
+            _swaggerCallbackUri = $"{_config["Authentication:Host"]}/auth/discord/swagger-callback";
             _siteUri = _config["Authentication:SiteUri"];
             _jwtService = jwtService;
             _discordService = discordService;
@@ -170,6 +172,61 @@ namespace MogTomeApi.Controllers
             }
 
             return true;
+        }
+
+        [HttpGet("discord/swagger-login")]
+        public IActionResult SwaggerLogin()
+        {
+            var state = Guid.NewGuid().ToString("N");
+            HttpContext.Session.SetString("discord_oauth_state", state);
+
+            var scopes = Uri.EscapeDataString(_config["Authentication:Scopes"]);
+
+            var url =
+                $"{_config["Authentication:DiscordLoginUri"]}" +
+                $"?client_id={_discordClientId}" +
+                $"&redirect_uri={_swaggerCallbackUri}" +
+                $"&response_type=code" +
+                $"&scope={scopes}" +
+                $"&state={state}";
+
+            return Redirect(url);
+        }
+
+        [HttpGet("discord/swagger-callback")]
+        public async Task<IActionResult> SwaggerCallback([FromQuery] string code, [FromQuery] string state)
+        {
+            try
+            {
+                var expectedState = HttpContext.Session.GetString("discord_oauth_state");
+
+                if (state != expectedState)
+                {
+                    return BadRequest("State validation failed");
+                }
+
+                var token = await _discordService.GetDiscordTokenUsingCode(code, _swaggerCallbackUri);
+
+                if (token == null)
+                {
+                    return Redirect(_siteUri);
+                }
+
+                // Fetch discord info to populate identity
+                var discordUser = await _discordService.GetDiscordUserInformation(token);
+
+                // Using discord identity, create a JWT for the FE to use
+                var jwt = await _jwtService.CreateAccessToken(discordUser.Id);
+                var refreshToken = JwtService.CreateRefreshToken();
+
+
+                return Redirect($"/discord-complete.html?jwt={jwt}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during Discord OAuth callback");
+                return Redirect($"{_siteUri}?missingUserData=true");
+            }
         }
     }
 }

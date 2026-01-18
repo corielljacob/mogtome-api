@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using MogTomeApi.Data;
@@ -22,6 +23,7 @@ namespace MogTomeApi.Controllers
         }
 
         [HttpGet()]
+        [Authorize]
         public async Task<ActionResult<PaginatedEventsResponse>> GetEvents([FromQuery] string cursor, [FromQuery] int limit = 100)
         {
             try

@@ -1,6 +1,7 @@
 ﻿using MogTomeApi.Data;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using System.Net;
 using static MogTomeApi.Controllers.EventsController;
 using static MogTomeApi.Services.JwtService;
 
@@ -9,8 +10,9 @@ namespace MogTomeApi.Services
     public class MongoService
     {
         private readonly MongoClient _client;
+        private readonly ILogger _logger;
 
-        public MongoService()
+        public MongoService(ILogger<MongoService> logger)
         {
             var connectionString = Environment.GetEnvironmentVariable(Constants.ConnectionStringId, EnvironmentVariableTarget.Machine);
 
@@ -18,6 +20,7 @@ namespace MogTomeApi.Services
                 connectionString = Environment.GetEnvironmentVariable(Constants.ConnectionStringId);
 
             _client = new MongoClient(connectionString);
+            _logger = logger;
         }
 
         public async Task<List<FreeCompanyMember>> GetFreeCompanyMembers()
@@ -199,6 +202,66 @@ namespace MogTomeApi.Services
                 .Set(member => member.Biography, biography);
 
             await membersCollection.UpdateOneAsync(filter, update);
+        }
+
+        public async Task CreateBiographySubmission(string discordId, string biography)
+        {
+            var membersCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+
+            var submission = new BiographySubmission
+            {
+                SubmissionId = Guid.NewGuid(),
+                SubmittedByDiscordId = discordId,
+                Biography = biography,
+                SubmittedAt = DateTime.UtcNow,
+                Status = "Pending"
+            };
+
+            await membersCollection.InsertOneAsync(submission);
+        }
+
+        public async Task<List<BiographySubmission>> GetPendingBiographySubmissions()
+        {
+            var membersCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+            var filter = Builders<BiographySubmission>.Filter.Eq(submission => submission.Status, "Pending");
+
+            var submissions = await membersCollection
+                .Find(filter)
+                .ToListAsync();
+            
+            return submissions;
+        }
+
+        public async Task<HttpStatusCode> ApproveSubmission(Guid submissionId)
+        {
+            try
+            {
+                var membersCollection = _client.GetDatabase("kupo-life").GetCollection<BiographySubmission>("biography-submissions");
+                var filter = Builders<BiographySubmission>.Filter.Eq(submission => submission.SubmissionId, submissionId);
+
+                var submission = await membersCollection
+                    .Find(filter)
+                    .SingleOrDefaultAsync();
+
+                if (submission == null)
+                {
+                    return HttpStatusCode.NotFound;
+                }
+
+                await SetUserBiography(submission.SubmittedByDiscordId, submission.Biography);
+
+                var update = Builders<BiographySubmission>.Update
+                .Set(submission => submission.Status, "Approved");
+
+                await membersCollection.UpdateOneAsync(filter, update);
+
+                return HttpStatusCode.OK;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to approve biography submission {SubmissionId}: {Message}\nStack Trace:{Trace}", submissionId, ex.Message, ex.StackTrace);
+                return HttpStatusCode.InternalServerError;
+            }
         }
     }
 }

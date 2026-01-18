@@ -1,0 +1,14 @@
+﻿<!DOCTYPE html>
+<html>
+<body>
+    <script>const params = new URLSearchParams(window.location.search);
+    const token = params.get("jwt");
+
+    window.opener.postMessage({
+        type: "discord-jwt",
+        token: token
+    }, "*");
+
+    window.close();</script>
+</body>
+</html>

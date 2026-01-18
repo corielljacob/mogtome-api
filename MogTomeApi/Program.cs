@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using MogTomeApi.Hubs;
 using MogTomeApi.Services;
 using MongoDB.Bson;
@@ -22,16 +24,32 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(config =>
+{
+    config.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "JWT Header",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+
+    config.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = Array.Empty<string>().ToList()
+    });
+
+});
+
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MongoService>();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<DiscordService>();
+builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddDistributedMemoryCache();
 
 builder.Services.AddSession(options =>
@@ -41,8 +59,6 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.None;
 });
-
-builder.Services.AddSingleton(new HttpClient());
 
 var secretKey = Environment.GetEnvironmentVariable("MogTomeApiSigningSecret", EnvironmentVariableTarget.Process);
 var signingkey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
@@ -73,9 +89,14 @@ app.UseCors("AllowMogTome");
 
 app.UseSession();
 
+app.UseStaticFiles();
+
 // Configure the HTTP request pipeline.
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.InjectJavascript("/discord-login.js");
+});
 
 app.UseHttpsRedirection();
 

@@ -72,7 +72,7 @@ namespace MogTomeApi.Services
             return JsonSerializer.Deserialize<DiscordToken>(body);
         }
 
-        public async Task<DiscordToken> GetDiscordTokenUsingCode(string code)
+        public async Task<DiscordToken> GetDiscordTokenUsingCode(string code, string callback = null)
         {
             var content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
@@ -80,7 +80,7 @@ namespace MogTomeApi.Services
                 ["client_secret"] = _discordClientSecret,
                 ["grant_type"] = "authorization_code",
                 ["code"] = code,
-                ["redirect_uri"] = _callbackUri
+                ["redirect_uri"] = callback ?? _callbackUri
             });
 
             var response = await _httpClient.PostAsync(_config["Authentication:DiscordTokenUri"], content);
