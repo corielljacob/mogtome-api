@@ -9,4 +9,13 @@ namespace MogTomeApi.Data
         public DateTime CreatedAt { get; set; }
         public string Type { get; set; }
     }
+
+    public enum EventType
+    {
+        MemberJoined,
+        MemberRejoined,
+        Announcement,
+        RankPromoted,
+        NameChanged
+    }
 }

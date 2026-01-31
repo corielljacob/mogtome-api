@@ -24,11 +24,15 @@ namespace MogTomeApi.Controllers
 
         [HttpGet()]
         [Authorize]
-        public async Task<ActionResult<PaginatedEventsResponse>> GetEvents([FromQuery] string cursor, [FromQuery] int limit = 100)
+        public async Task<ActionResult<PaginatedEventsResponse>> GetEvents(
+            [FromQuery] string cursor = null, 
+            [FromQuery] int limit = 100, 
+            [FromQuery] string query = null, 
+            [FromQuery] EventType? filter = null)
         {
             try
             {
-                var events = await _mongoService.GetFreeCompanyEvents(cursor, limit);
+                var events = await _mongoService.GetFreeCompanyEvents(cursor, limit, query, filter.ToString());
                 return Ok(events);
             }
             catch(Exception ex)

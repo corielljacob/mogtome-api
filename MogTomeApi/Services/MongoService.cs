@@ -72,18 +72,45 @@ namespace MogTomeApi.Services
             return freeCompanyMember;
         }
 
-        public async Task<PaginatedEventsResponse> GetFreeCompanyEvents(string cursor, int limit)
+        public async Task<PaginatedEventsResponse> GetFreeCompanyEvents(string cursor, int limit, string eventTextQuery, string eventTypeFilter)
         {
+            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
+
+            var filters = BuildFilters(cursor, eventTypeFilter);
+            
+            var eventsSearch = BuildTextSearch(eventsCollection, eventTextQuery);
+            var events = await eventsSearch
+                .Match(filters)
+                .SortByDescending(e => e.CreatedAt)
+                .ThenByDescending(e => e.Id)
+                .Limit(limit + 1)
+                .ToListAsync();
+
+            var nextCursor = CalculateNextCursor(events, limit);
+
+            events = events.Take(limit).ToList();
+
+            var paginatedResponse = new PaginatedEventsResponse
+            {
+                Events = events,
+                NextCursor = nextCursor,
+                HasMore = events.Count > limit
+            };
+
+            return paginatedResponse;
+        }
+
+        private FilterDefinition<Event> BuildFilters(string cursor, string eventTypeFilter)
+        {
+            var filters = Builders<Event>.Filter.Empty;
+
             var decodedCursor = CursorHelper.DecodeCursor(cursor);
-
-            var filter = Builders<Event>.Filter.Empty;
-
-            if(decodedCursor is not null)
+            if (decodedCursor is not null)
             {
                 var createdAtFilter = decodedCursor.CreatedAt;
                 var idFilter = ObjectId.Parse(decodedCursor.Id);
 
-                filter = Builders<Event>.Filter.Or(
+                filters = Builders<Event>.Filter.Or(
                     Builders<Event>.Filter.Lt(e => e.CreatedAt, createdAtFilter),
 
                     Builders<Event>.Filter.And(
@@ -93,32 +120,39 @@ namespace MogTomeApi.Services
                 );
             }
 
-            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
-            var events = await eventsCollection
-                .Find(filter)
-                .SortByDescending(e => e.CreatedAt)
-                .ThenByDescending(e => e.Id)
-                .Limit(limit + 1)
-                .ToListAsync();
+            if (string.IsNullOrEmpty(eventTypeFilter) == false)
+            {
+                var typeFilter = Builders<Event>.Filter.Eq(e => e.Type, eventTypeFilter);
+                filters = Builders<Event>.Filter.And(filters, typeFilter);
+            }
 
+            return filters;
+        }
+
+        private string CalculateNextCursor(List<Event> events, int limit)
+        {
             bool hasMore = events.Count > limit;
-            events = events.Take(limit).ToList();
 
             string nextCursor = null;
-            if(hasMore)
+            if (hasMore)
             {
-                var lastEvent = events[^1];
+                var lastEvent = events[^2];
                 nextCursor = CursorHelper.EncodeCursor(new CursorHelper.EventCursor(lastEvent.CreatedAt, lastEvent.Id.ToString()));
             }
 
-            var paginatedResponse = new PaginatedEventsResponse
-            {
-                Events = events,
-                NextCursor = nextCursor,
-                HasMore = hasMore
-            };
+            return nextCursor;
+        }
 
-            return paginatedResponse;
+        private IAggregateFluent<Event> BuildTextSearch(IMongoCollection<Event> eventsCollection, string eventTextQuery)
+        {
+            var eventsSearch = eventsCollection.Aggregate();
+
+            if (string.IsNullOrEmpty(eventTextQuery) == false)
+            {
+                eventsSearch = eventsSearch.Search(Builders<Event>.Search.Autocomplete(g => g.Text, eventTextQuery), indexName: "event-index");
+            }
+
+            return eventsSearch;
         }
 
         public async Task<MemberToken> GetMemberRefreshTokenInfo(string refreshToken)
