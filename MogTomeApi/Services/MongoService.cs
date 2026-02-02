@@ -88,13 +88,14 @@ namespace MogTomeApi.Services
 
             var nextCursor = CalculateNextCursor(events, limit);
 
+            var hasMore = events.Count > limit;
             events = events.Take(limit).ToList();
 
             var paginatedResponse = new PaginatedEventsResponse
             {
                 Events = events,
                 NextCursor = nextCursor,
-                HasMore = events.Count > limit
+                HasMore = hasMore
             };
 
             return paginatedResponse;
