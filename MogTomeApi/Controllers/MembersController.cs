@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MogTomeApi.Data;
 using MogTomeApi.Services;
@@ -33,7 +34,7 @@ namespace MogTomeApi.Controllers
                     ActiveMember = member.ActiveMember,
                     AvatarLink = member.AvatarLink
                 });
-                
+
                 var response = new GetMembersResponse
                 {
                     Members = memberResponse,
@@ -42,7 +43,7 @@ namespace MogTomeApi.Controllers
 
                 return Ok(response);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError("Error fetching members: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
                 return StatusCode(500, "An error occurred when fetching members");
@@ -70,8 +71,50 @@ namespace MogTomeApi.Controllers
                 return StatusCode(500, "An error occurred when fetching staff");
             }
         }
+
+        [HttpGet("unmapped-characters")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<UnmappedCharacter>>> GetUnmappedCharacters()
+        {
+            try
+            {
+                var unmappedCharacters = await _mongoService.GetUnmappedCharacters();
+                return Ok(unmappedCharacters);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching unmapped characters: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching unmapped characters");
+            }
+        }
+
+        [HttpGet("unmapped-discord-users")]
+        [Authorize]
+        public async Task<ActionResult<GetUnmappedDiscordUsersResponse>> GetUnmappedDiscordUsers([FromQuery] string characterName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(characterName))
+                {
+                    return BadRequest("characterName is required");
+                }
+
+                if(characterName.Contains(' ') == false)
+                {
+                    return BadRequest("characterName must contain a space");
+                }
+
+                var unmappedDiscordUsersResponse = await _mongoService.GetUnmappedDiscordUsersForCharacter(characterName);
+                return Ok(unmappedDiscordUsersResponse);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching unmapped discord users: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching unmapped discord users");
+            }
+        }
     }
-    
+
     public class GetMembersResponse
     {
         public int TotalCount { get; set; }
@@ -92,5 +135,23 @@ namespace MogTomeApi.Controllers
     {
         public int TotalCount { get; set; }
         public required IEnumerable<FreeCompanyStaffMember> Staff { get; set; }
+    }
+
+    public class UnmappedCharacter
+    {
+        public string CharacterId { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class GetUnmappedDiscordUsersResponse
+    {
+        public IEnumerable<UnmappedDiscordUser> SuggestedDiscordUsers { get; set; }
+        public IEnumerable<UnmappedDiscordUser> UnmappedDiscordUsers { get; set; }
+    }
+
+    public class UnmappedDiscordUser
+    {
+        public string DiscordId { get; set; }
+        public string ServerNickName { get; set; }
     }
 }
