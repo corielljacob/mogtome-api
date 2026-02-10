@@ -94,12 +94,7 @@ namespace MogTomeApi.Controllers
         {
             try
             {
-                if (string.IsNullOrEmpty(characterName))
-                {
-                    return BadRequest("characterName is required");
-                }
-
-                if(characterName.Contains(' ') == false)
+                if(string.IsNullOrEmpty(characterName) == false && characterName.Contains(' ') == false)
                 {
                     return BadRequest("characterName must contain a space");
                 }

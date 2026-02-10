@@ -444,15 +444,17 @@ namespace MogTomeApi.Services
                     ServerNickName = member.Name
                 })
                 .Where(member => mappedMemberIds.Contains(member.DiscordId) == false)
+                .OrderBy(member => member.ServerNickName)
                 .ToList();
 
             List<UnmappedDiscordUser> suggestedDiscordUsers = [];
-            PopulateSuggestedDiscordMembers(discordMembers, suggestedDiscordUsers, characterName);
+            if(string.IsNullOrEmpty(characterName) == false)
+                PopulateSuggestedDiscordMembers(discordMembers, suggestedDiscordUsers, characterName);
 
             var unmappedDiscordUsersResponse = new GetUnmappedDiscordUsersResponse
             {
-                SuggestedDiscordUsers = suggestedDiscordUsers.OrderBy(user => user.ServerNickName),
-                UnmappedDiscordUsers = unmappedDiscordUsers.OrderBy(user => user.ServerNickName)
+                SuggestedDiscordUsers = suggestedDiscordUsers,
+                UnmappedDiscordUsers = unmappedDiscordUsers
             };
 
             return unmappedDiscordUsersResponse;
@@ -506,6 +508,8 @@ namespace MogTomeApi.Services
                     suggestedDiscordUsers.Add(suggestion);
                 }
             }
+
+            suggestedDiscordUsers = suggestedDiscordUsers.OrderBy(member => member.ServerNickName).ToList();
         }
     }
 }
