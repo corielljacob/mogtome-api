@@ -112,7 +112,7 @@ namespace MogTomeApi.Controllers
         [HttpGet("discord/refresh")]
         public async Task<IActionResult> Refresh()
         {
-            var refreshToken = Request.Cookies["refresh_token"];
+            var refreshToken = Request.Cookies["main_refresh_token"];
 
             if (refreshToken == null)
                 return Unauthorized();
@@ -137,7 +137,7 @@ namespace MogTomeApi.Controllers
         private void WriteRefreshTokenToCookie(string refreshToken)
         {
             Response.Cookies.Append(
-                "refresh_token",
+                "main_refresh_token",
                 refreshToken,
                 new CookieOptions
                 {
