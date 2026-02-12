@@ -144,7 +144,8 @@ namespace MogTomeApi.Controllers
                     HttpOnly = true,
                     Secure = true,
                     SameSite = SameSiteMode.None,
-                    Expires = DateTime.UtcNow.AddDays(14)
+                    Expires = DateTime.UtcNow.AddDays(14),
+                    Domain = "mogtome.com"
                 }
             );
         }
