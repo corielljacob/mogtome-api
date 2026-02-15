@@ -9,10 +9,10 @@ namespace MogTomeApi.Controllers
     [Route("members")]
     public class MembersController : ControllerBase
     {
-        private readonly ILogger<EventsController> _logger;
+        private readonly ILogger<MembersController> _logger;
         private readonly MongoService _mongoService;
 
-        public MembersController(ILogger<EventsController> logger, MongoService mongoService)
+        public MembersController(ILogger<MembersController> logger, MongoService mongoService)
         {
             _logger = logger;
             _mongoService = mongoService;

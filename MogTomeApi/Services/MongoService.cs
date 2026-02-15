@@ -4,7 +4,6 @@ using MogTomeApi.Data;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
-using static MogTomeApi.Controllers.EventsController;
 using static MogTomeApi.Services.JwtService;
 
 namespace MogTomeApi.Services
@@ -72,90 +71,6 @@ namespace MogTomeApi.Services
                 .SingleAsync();
 
             return freeCompanyMember;
-        }
-
-        public async Task<PaginatedEventsResponse> GetFreeCompanyEvents(string cursor, int limit, string eventTextQuery, string eventTypeFilter)
-        {
-            var eventsCollection = _client.GetDatabase("kupo-life").GetCollection<Event>("events");
-
-            var filters = BuildFilters(cursor, eventTypeFilter);
-            
-            var eventsSearch = BuildTextSearch(eventsCollection, eventTextQuery);
-            var events = await eventsSearch
-                .Match(filters)
-                .SortByDescending(e => e.CreatedAt)
-                .ThenByDescending(e => e.Id)
-                .Limit(limit + 1)
-                .ToListAsync();
-
-            var nextCursor = CalculateNextCursor(events, limit);
-
-            var hasMore = events.Count > limit;
-            events = events.Take(limit).ToList();
-
-            var paginatedResponse = new PaginatedEventsResponse
-            {
-                Events = events,
-                NextCursor = nextCursor,
-                HasMore = hasMore
-            };
-
-            return paginatedResponse;
-        }
-
-        private FilterDefinition<Event> BuildFilters(string cursor, string eventTypeFilter)
-        {
-            var filters = Builders<Event>.Filter.Empty;
-
-            var decodedCursor = CursorHelper.DecodeCursor(cursor);
-            if (decodedCursor is not null)
-            {
-                var createdAtFilter = decodedCursor.CreatedAt;
-                var idFilter = ObjectId.Parse(decodedCursor.Id);
-
-                filters = Builders<Event>.Filter.Or(
-                    Builders<Event>.Filter.Lt(e => e.CreatedAt, createdAtFilter),
-
-                    Builders<Event>.Filter.And(
-                        Builders<Event>.Filter.Eq(e => e.CreatedAt, createdAtFilter),
-                        Builders<Event>.Filter.Lt(e => e.Id, idFilter)
-                    )
-                );
-            }
-
-            if (string.IsNullOrEmpty(eventTypeFilter) == false)
-            {
-                var typeFilter = Builders<Event>.Filter.Eq(e => e.Type, eventTypeFilter);
-                filters = Builders<Event>.Filter.And(filters, typeFilter);
-            }
-
-            return filters;
-        }
-
-        private string CalculateNextCursor(List<Event> events, int limit)
-        {
-            bool hasMore = events.Count > limit;
-
-            string nextCursor = null;
-            if (hasMore)
-            {
-                var lastEvent = events[^2];
-                nextCursor = CursorHelper.EncodeCursor(new CursorHelper.EventCursor(lastEvent.CreatedAt, lastEvent.Id.ToString()));
-            }
-
-            return nextCursor;
-        }
-
-        private IAggregateFluent<Event> BuildTextSearch(IMongoCollection<Event> eventsCollection, string eventTextQuery)
-        {
-            var eventsSearch = eventsCollection.Aggregate();
-
-            if (string.IsNullOrEmpty(eventTextQuery) == false)
-            {
-                eventsSearch = eventsSearch.Search(Builders<Event>.Search.Autocomplete(g => g.Text, eventTextQuery), indexName: "event-index");
-            }
-
-            return eventsSearch;
         }
 
         public async Task<MemberToken> GetMemberRefreshTokenInfo(string refreshToken)

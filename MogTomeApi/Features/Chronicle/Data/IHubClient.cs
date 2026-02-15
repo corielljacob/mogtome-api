@@ -1,6 +1,4 @@
-﻿using MogTomeApi.Data;
-
-namespace MogTomeApi.Hubs
+﻿namespace MogTomeApi.Features.Chronicle
 {
     public interface IHubClient
     {

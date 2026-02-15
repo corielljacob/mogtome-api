@@ -7,5 +7,6 @@
         public readonly static string PaissaTrainer = "Paissa Trainer";
         public readonly static string MoogleGuardian = "Moogle Guardian";
         public readonly static string PassiveToast = "Passive Toast";
+        public readonly static string KupoLifeDatabase = "kupo-life";
     }
 }

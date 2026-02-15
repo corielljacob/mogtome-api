@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using MogTomeApi.Hubs;
+using MogTomeApi;
+using MogTomeApi.Features.Chronicle;
 using MogTomeApi.Services;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -19,9 +20,9 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowMogTome", policy =>
     {
         policy.WithOrigins("https://mogtome.com")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -57,6 +58,23 @@ builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<DiscordService>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddDistributedMemoryCache();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+
+builder.Services.AddSingleton<IMongoClient>(sp =>
+{
+    var connectionString = Environment.GetEnvironmentVariable(Constants.ConnectionStringId, EnvironmentVariableTarget.Machine);
+
+    if (string.IsNullOrWhiteSpace(connectionString))
+        connectionString = Environment.GetEnvironmentVariable(Constants.ConnectionStringId);
+
+    return new MongoClient(connectionString);
+});
+
+builder.Services.AddScoped(sp =>
+{
+    var client = sp.GetRequiredService<IMongoClient>();
+    return client.GetDatabase(Constants.KupoLifeDatabase);
+});
 
 builder.Services.AddSession(options =>
 {

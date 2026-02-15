@@ -10,10 +10,10 @@ namespace MogTomeApi.Controllers
     [Route("biography")]
     public class BiographyController : ControllerBase
     {
-        private readonly ILogger<EventsController> _logger;
+        private readonly ILogger<BiographyController> _logger;
         private readonly MongoService _mongoService;
 
-        public BiographyController(ILogger<EventsController> logger, MongoService mongoService)
+        public BiographyController(ILogger<BiographyController> logger, MongoService mongoService)
         {
             _logger = logger;
             _mongoService = mongoService;
