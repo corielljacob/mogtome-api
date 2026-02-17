@@ -12,7 +12,7 @@ namespace MogTomeApi.Shared
             Error = error;
         }
 
-        public bool IsSuccess { get; }
+        public bool IsSuccess { get; set; }
         public HttpStatusCode StatusCode { get; set; }
         public T Value { get; set; }
         public string Error { get; set; }

@@ -24,8 +24,8 @@
 
   <ItemGroup>
     <Folder Include="Features\Dashboard\" />
-    <Folder Include="Features\Authentication\" />
     <Folder Include="Features\Members\" />
+    <Folder Include="Features\Profile\" />
   </ItemGroup>
 
 </Project>

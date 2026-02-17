@@ -4,7 +4,6 @@ using MogTomeApi.Data;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
-using static MogTomeApi.Services.JwtService;
 
 namespace MogTomeApi.Services
 {
@@ -73,19 +72,6 @@ namespace MogTomeApi.Services
             return freeCompanyMember;
         }
 
-        public async Task<MemberToken> GetMemberRefreshTokenInfo(string refreshToken)
-        {
-            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
-
-            var filter = Builders<MemberToken>.Filter.Eq(member => member.CustomRefreshToken, refreshToken);
-
-            var memberToken = await tokenCollection
-                .Find(filter)
-                .SingleAsync();
-
-            return memberToken;
-        }
-
         public async Task<MemberToken> GetMemberTokenByDiscordId(string discordId)
         {
             var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
@@ -99,46 +85,12 @@ namespace MogTomeApi.Services
             return memberToken;
         }
 
-        public async Task UpsertMemberToken(string discordId, RefreshToken refreshToken, DiscordToken discordToken)
-        {
-            var memberToken = await GetMemberTokenByDiscordId(discordId);
-
-            if (memberToken == null)
-            {
-                memberToken = new MemberToken();
-            }
-
-            memberToken.DiscordId = discordId;
-            memberToken.CustomRefreshToken = refreshToken.Token;
-            memberToken.CustomRefreshTokenRevoked = refreshToken.Revoked;
-            memberToken.CustomRefreshTokenExpiresAt = refreshToken.ExpiresAt;
-            memberToken.DiscordToken = discordToken.AccessToken;
-            memberToken.DiscordRefreshToken = discordToken.RefreshToken;
-
-            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
-            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
-            await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = true });
-        }
-
         public async Task UpdateMemberDiscordToken(string discordId, DiscordToken discordToken)
         {
             var memberToken = await GetMemberTokenByDiscordId(discordId);
 
             memberToken.DiscordToken = discordToken.AccessToken;
             memberToken.DiscordRefreshToken = discordToken.RefreshToken;
-
-            var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
-            var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
-            await tokenCollection.ReplaceOneAsync(filter, memberToken, new ReplaceOptions { IsUpsert = false });
-        }
-
-        public async Task UpdateMemberRefreshToken(string discordId, RefreshToken refreshToken)
-        {
-            var memberToken = await GetMemberTokenByDiscordId(discordId);
-
-            memberToken.CustomRefreshToken = refreshToken.Token;
-            memberToken.CustomRefreshTokenRevoked = refreshToken.Revoked;
-            memberToken.CustomRefreshTokenExpiresAt = refreshToken.ExpiresAt;
 
             var tokenCollection = _client.GetDatabase("kupo-life").GetCollection<MemberToken>("tokens");
             var filter = Builders<MemberToken>.Filter.Eq(member => member.DiscordId, memberToken.DiscordId);
@@ -246,17 +198,6 @@ namespace MogTomeApi.Services
                 _logger.LogError("Failed to reject biography submission {SubmissionId}: {Message}\nStack Trace:{Trace}", submissionId, ex.Message, ex.StackTrace);
                 return HttpStatusCode.InternalServerError;
             }
-        }
-
-        public async Task SetFirstTimeMogTomeLogin(string discordId, DateTime loginDate)
-        {
-            var membersCollection = _client.GetDatabase("kupo-life").GetCollection<FreeCompanyMember>("members");
-            var filter = Builders<FreeCompanyMember>.Filter.Eq(member => member.DiscordId, discordId);
-
-            var update = Builders<FreeCompanyMember>.Update
-                .Set(member => member.FirstMogTomeLogin, loginDate);
-
-            await membersCollection.UpdateOneAsync(filter, update);
         }
 
         public async Task<BiographySubmission> GetUserSubmissionInfo(string discordId)

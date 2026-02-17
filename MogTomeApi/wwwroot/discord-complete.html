@@ -2,7 +2,7 @@
 <html>
 <body>
     <script>const params = new URLSearchParams(window.location.search);
-    const token = params.get("jwt");
+    const token = params.get("token");
 
     window.opener.postMessage({
         type: "discord-jwt",

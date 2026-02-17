@@ -54,7 +54,6 @@ builder.Services.AddSwaggerGen(config =>
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MongoService>();
-builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<DiscordService>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddDistributedMemoryCache();
