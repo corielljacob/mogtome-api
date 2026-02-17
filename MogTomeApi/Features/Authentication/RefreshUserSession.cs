@@ -47,8 +47,8 @@ namespace MogTomeApi.Features.Authentication
 
                 var freeCompanyMember = await GetFreeCompanyMemberByDiscordId(memberToken.DiscordId);
 
-                var jwtTokenIssuer = _config["Authentication:TokenIssuer"];
-                var jwtTokenAudience = _config["Authentication:TokenAudience"];
+                var jwtTokenIssuer = _config["Authentication:Host"];
+                var jwtTokenAudience = _config["Authentication:Audience"];
                 var newJwt = JwtHelper.CreateAccessToken(freeCompanyMember, jwtTokenIssuer, jwtTokenAudience);
                 var newRefreshToken = JwtHelper.CreateRefreshToken();
                 var newSessionId = SessionHelper.GenerateSessionId();
