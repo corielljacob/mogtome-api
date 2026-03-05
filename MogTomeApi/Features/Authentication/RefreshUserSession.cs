@@ -23,11 +23,13 @@ namespace MogTomeApi.Features.Authentication
         {
             private readonly IConfiguration _config;
             private readonly IMongoDatabase _mongoDatabase;
+            private readonly ILogger<Handler> _logger;
 
-            public Handler(IConfiguration config, IMongoDatabase mongoDatabase)
+            public Handler(IConfiguration config, IMongoDatabase mongoDatabase, ILogger<Handler> logger)
             {
                 _config = config;
                 _mongoDatabase = mongoDatabase;
+                _logger = logger;
             }
 
             public async Task<Result<RefreshResult>> Handle(Command request, CancellationToken cancellationToken)
@@ -41,6 +43,7 @@ namespace MogTomeApi.Features.Authentication
 
                 if (memberToken == null || memberToken.RefreshTokenRevoked || memberToken.RefreshTokenExpiresAt <= DateTime.Now)
                 {
+                    _logger.LogWarning("Invalid or expired refresh token for session {SessionId}", request.SessionId);
                     await RevokeSession(request.SessionId, cancellationToken);
                     return new Result<RefreshResult>(null, HttpStatusCode.Unauthorized, false, "Invalid or expired session.");
                 }
@@ -54,6 +57,8 @@ namespace MogTomeApi.Features.Authentication
                 var newSessionId = SessionHelper.GenerateSessionId();
 
                 await UpsertMemberToken(memberToken.DiscordId, newRefreshToken, newSessionId, cancellationToken);
+
+                _logger.LogWarning("Refreshed session {SessionId} with new id {newSessionId}", request.SessionId, newSessionId);
                 await RevokeSession(request.SessionId, cancellationToken);
 
                 var refreshResult = new RefreshResult
@@ -100,6 +105,7 @@ namespace MogTomeApi.Features.Authentication
 
             private async Task RevokeSession(string sessionId, CancellationToken cancellationToken)
             {
+                _logger.LogWarning("Deleting session id {sessionId}", sessionId);
                 var tokenCollection = _mongoDatabase.GetCollection<MemberToken>("tokens");
                 var filter = Builders<MemberToken>.Filter.Eq(token => token.SessionId, sessionId);
                 await tokenCollection.DeleteOneAsync(filter, cancellationToken);
