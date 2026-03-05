@@ -1,5 +1,6 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using static MogTomeApi.Shared.RedirectValidationHelper;
 
 namespace MogTomeApi.Features.Authentication
@@ -101,7 +102,7 @@ namespace MogTomeApi.Features.Authentication
         {
             try
             {
-                var sessionId = Request.Cookies["session_id"];
+                var sessionId = Request.Cookies["mogtome_session_id"];
 
                 if (sessionId == null)
                     return Unauthorized();
@@ -152,8 +153,16 @@ namespace MogTomeApi.Features.Authentication
 
         private void WriteSessionIdToCookie(string sessionId)
         {
+            Response.Cookies.Delete("mogtome_session_id", new CookieOptions
+            {
+                Domain = _config["Authentication:CookieDomain"],
+                Path = "/"
+            });
+
+            Response.Cookies.Delete("mogtome_session_id");
+
             Response.Cookies.Append(
-                "session_id",
+                "mogtome_session_id",
                 sessionId,
                 new CookieOptions
                 {
@@ -161,7 +170,8 @@ namespace MogTomeApi.Features.Authentication
                     Secure = true,
                     SameSite = SameSiteMode.None,
                     Expires = DateTime.UtcNow.AddDays(14),
-                    Domain = _config["Authentication:CookieDomain"]
+                    Domain = _config["Authentication:CookieDomain"],
+                    Path = "/"
                 }
             );
         }
