@@ -54,10 +54,12 @@ builder.Services.AddSwaggerGen(config =>
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<MongoService>();
-builder.Services.AddSingleton<DiscordService>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
+builder.Services.AddMediatR(cfg => {
+    cfg.RegisterServicesFromAssemblyContaining<Program>();
+    cfg.LicenseKey = Environment.GetEnvironmentVariable(Constants.LuckyPennyLicense, EnvironmentVariableTarget.Machine);
+});
 
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
