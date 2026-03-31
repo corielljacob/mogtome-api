@@ -26,7 +26,7 @@ namespace MogTomeApi.Features.Members
 
                 if (result.IsSuccess)
                 {
-                    return Ok(result);
+                    return Ok(result.Value);
 
                 }
                 else
@@ -48,7 +48,7 @@ namespace MogTomeApi.Features.Members
             try
             {
                 var result = await _mediator.Send(new GetStaffMembersQuery());
-                return Ok(result);
+                return Ok(result.Value);
             }
             catch (Exception ex)
             {
