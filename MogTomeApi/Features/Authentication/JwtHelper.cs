@@ -22,6 +22,7 @@ namespace MogTomeApi.Features.Authentication
                 new ("memberRank", freeCompanyMember.FreeCompanyRank),
                 new ("memberPortraitUrl", freeCompanyMember.AvatarLink),
                 new ("firstMogTomeLoginDate", freeCompanyMember.FirstMogTomeLogin.ToString()),
+                new ("hasKnighthood", (freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian) ? "true" : "false")
             };
 
             if(freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian || freeCompanyMember.HasTemporaryKnighthood)
