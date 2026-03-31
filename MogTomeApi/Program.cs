@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using MogTomeApi;
 using MogTomeApi.Features.Chronicle;
-using MogTomeApi.Services;
+using MogTomeApi.Shared;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
@@ -53,7 +52,6 @@ builder.Services.AddSwaggerGen(config =>
 });
 
 builder.Services.AddSignalR();
-builder.Services.AddSingleton<MongoService>();
 builder.Services.AddSingleton(new HttpClient());
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddMediatR(cfg => {

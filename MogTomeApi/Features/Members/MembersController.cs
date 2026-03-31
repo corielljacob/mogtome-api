@@ -1,6 +1,6 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using MogTomeApi.Data;
-using MogTomeApi.Services;
+using MogTomeApi.Features.Members.Queries;
 
 namespace MogTomeApi.Features.Members
 {
@@ -9,60 +9,46 @@ namespace MogTomeApi.Features.Members
     public class MembersController : ControllerBase
     {
         private readonly ILogger<MembersController> _logger;
-        private readonly MongoService _mongoService;
+        private readonly IMediator _mediator;
 
-        public MembersController(ILogger<MembersController> logger, MongoService mongoService)
+        public MembersController(ILogger<MembersController> logger, IMediator mediator)
         {
             _logger = logger;
-            _mongoService = mongoService;
+            _mediator = mediator;
         }
 
         [HttpGet()]
-        public async Task<ActionResult<GetMembersResponse>> GetMembers()
+        public async Task<ActionResult> GetMembers()
         {
             try
             {
-                var members = await _mongoService.GetFreeCompanyMembers();
+                var result = await _mediator.Send(new GetMembersQuery());
 
-                var memberResponse = members.Select(member => new Member
+                if (result.IsSuccess)
                 {
-                    Name = member.Name,
-                    FreeCompanyRank = member.FreeCompanyRank,
-                    FreeCompanyRankIcon = member.FreeCompanyRankIcon,
-                    CharacterId = member.CharacterId,
-                    ActiveMember = member.ActiveMember,
-                    AvatarLink = member.AvatarLink
-                });
+                    return Ok(result);
 
-                var response = new GetMembersResponse
+                }
+                else
                 {
-                    Members = memberResponse,
-                    TotalCount = members.Count
-                };
-
-                return Ok(response);
+                    _logger.LogError("Failed get members: {Message}", result.Error);
+                    return StatusCode((int)result.StatusCode, result.Error);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error fetching members: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
-                return StatusCode(500, "An error occurred when fetching members");
+                _logger.LogError("Failed to retrieve members: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when retrieving members");
             }
         }
 
         [HttpGet("staff")]
-        public async Task<ActionResult<GetStaffResponse>> GetStaff()
+        public async Task<ActionResult> GetStaff()
         {
             try
             {
-                var staff = await _mongoService.GetFreeCompanyStaff();
-
-                var response = new GetStaffResponse
-                {
-                    Staff = staff,
-                    TotalCount = staff.Count
-                };
-
-                return Ok(response);
+                var result = await _mediator.Send(new GetStaffMembersQuery());
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -70,27 +56,5 @@ namespace MogTomeApi.Features.Members
                 return StatusCode(500, "An error occurred when fetching staff");
             }
         }
-    }
-
-    public class GetMembersResponse
-    {
-        public int TotalCount { get; set; }
-        public required IEnumerable<Member> Members { get; set; }
-    }
-
-    public class Member
-    {
-        public string Name { get; set; }
-        public string FreeCompanyRank { get; set; }
-        public string FreeCompanyRankIcon { get; set; }
-        public string CharacterId { get; set; }
-        public bool ActiveMember { get; set; }
-        public string AvatarLink { get; set; }
-    }
-
-    public class GetStaffResponse
-    {
-        public int TotalCount { get; set; }
-        public required IEnumerable<FreeCompanyStaffMember> Staff { get; set; }
     }
 }

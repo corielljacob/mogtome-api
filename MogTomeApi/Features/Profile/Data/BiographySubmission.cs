@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
 
-namespace MogTomeApi.Data
+namespace MogTomeApi.Features.Profile.Data
 {
     public class BiographySubmission
     {

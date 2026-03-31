@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using MogTomeApi.Features.Authentication.Commands;
 using static MogTomeApi.Shared.RedirectValidationHelper;
 
 namespace MogTomeApi.Features.Authentication

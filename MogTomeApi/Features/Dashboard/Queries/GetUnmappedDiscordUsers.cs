@@ -5,7 +5,7 @@ using MogTomeApi.Shared;
 using MongoDB.Driver;
 using System.Net;
 
-namespace MogTomeApi.Features.Dashboard 
+namespace MogTomeApi.Features.Dashboard.Queries 
 {
     public class GetUnmappedDiscordUsers
     {

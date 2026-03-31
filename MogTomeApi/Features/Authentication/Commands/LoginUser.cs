@@ -7,7 +7,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using static MogTomeApi.Shared.RedirectValidationHelper;
 
-namespace MogTomeApi.Features.Authentication
+namespace MogTomeApi.Features.Authentication.Commands
 {
     public class LoginUser
     {

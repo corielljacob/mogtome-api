@@ -4,7 +4,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Net;
 
-namespace MogTomeApi.Features.Chronicle
+namespace MogTomeApi.Features.Chronicle.Queries
 {
     public class GetEvents
     {

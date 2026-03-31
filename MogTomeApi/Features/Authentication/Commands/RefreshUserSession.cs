@@ -4,7 +4,7 @@ using MogTomeApi.Shared;
 using MongoDB.Driver;
 using System.Net;
 
-namespace MogTomeApi.Features.Authentication
+namespace MogTomeApi.Features.Authentication.Commands
 {
     public class RefreshUserSession
     {

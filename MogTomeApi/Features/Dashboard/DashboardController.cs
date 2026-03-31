@@ -1,6 +1,9 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MogTomeApi.Features.Dashboard.Commands;
+using MogTomeApi.Features.Dashboard.Queries;
+using MogTomeApi.Shared;
 
 namespace MogTomeApi.Features.Dashboard
 {
@@ -18,7 +21,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpGet("unmapped-characters")]
-        [Authorize]
+        [Authorize(Roles = Constants.MoogleKnight)]
         public async Task<IActionResult> GetUnmappedCharacters([FromQuery] string discordUsername)
         {
             try
@@ -48,7 +51,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpGet("unmapped-discord-users")]
-        [Authorize]
+        [Authorize(Roles = Constants.MoogleKnight)]
         public async Task<IActionResult> GetUnmappedDiscordUsers([FromQuery] string characterName)
         {
             try
@@ -84,7 +87,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpPost("map")]
-        [Authorize]
+        [Authorize(Roles = Constants.MoogleKnight)]
         public async Task<IActionResult> Map([FromBody] MapDiscordAccountToCharacter.Command input)
         {
             try

@@ -1,6 +1,8 @@
 ﻿using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using MogTomeApi.Features.Authentication.Data;
+using MogTomeApi.Shared;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,24 +15,28 @@ namespace MogTomeApi.Features.Authentication
             string tokenIssuer,
             string tokenAudience)
         {
-            var claims = new Dictionary<string, object>
+            var claims = new List<Claim>
             {
-                ["discordId"] = freeCompanyMember.DiscordId,
-                ["memberName"] = freeCompanyMember.Name,
-                ["memberRank"] = freeCompanyMember.FreeCompanyRank,
-                ["hasKnighthood"] = freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian,
-                ["hasTemporaryKnighthood"] = freeCompanyMember.HasTemporaryKnighthood,
-                ["memberPortraitUrl"] = freeCompanyMember.AvatarLink,
-                ["firstMogTomeLoginDate"] = freeCompanyMember.FirstMogTomeLogin
+                new ("discordId", freeCompanyMember.DiscordId),
+                new ("memberName", freeCompanyMember.Name),
+                new ("memberRank", freeCompanyMember.FreeCompanyRank),
+                new ("memberPortraitUrl", freeCompanyMember.AvatarLink),
+                new ("firstMogTomeLoginDate", freeCompanyMember.FirstMogTomeLogin.ToString()),
             };
 
+            if(freeCompanyMember.FreeCompanyRank == Constants.MoogleKnight || freeCompanyMember.FreeCompanyRank == Constants.MoogleGuardian || freeCompanyMember.HasTemporaryKnighthood)
+                claims.Add(new Claim(ClaimTypes.Role, Constants.MoogleKnight));
+
+            if(freeCompanyMember.FreeCompanyRank == Constants.PaissaTrainer)
+                claims.Add(new Claim(ClaimTypes.Role, Constants.PaissaTrainer));
+            
             var secretKey = Environment.GetEnvironmentVariable("MogTomeApiSigningSecret", EnvironmentVariableTarget.Process);
             var signingkey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
             var descriptor = new SecurityTokenDescriptor
             {
+                Subject = new ClaimsIdentity(claims),
                 Issuer = tokenIssuer,
                 Audience = tokenAudience,
-                Claims = claims,
                 IssuedAt = DateTime.UtcNow,
                 NotBefore = DateTime.UtcNow,
                 Expires = DateTime.UtcNow.AddMinutes(60),

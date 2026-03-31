@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using MogTomeApi.Features.Chronicle.Queries;
 
 namespace MogTomeApi.Features.Chronicle
 {

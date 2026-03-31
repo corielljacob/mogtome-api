@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 
-namespace MogTomeApi.Data
+namespace MogTomeApi.Features.Members.Data
 {
     [BsonIgnoreExtraElements]
     public class FreeCompanyStaffMember : FreeCompanyMember

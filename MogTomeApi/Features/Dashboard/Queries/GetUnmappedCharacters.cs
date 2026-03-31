@@ -5,9 +5,9 @@ using MogTomeApi.Shared;
 using MongoDB.Driver;
 using System.Net;
 using System.Text.RegularExpressions;
-using static MogTomeApi.Features.Dashboard.GetUnmappedDiscordUsers;
+using static MogTomeApi.Features.Dashboard.Queries.GetUnmappedDiscordUsers;
 
-namespace MogTomeApi.Features.Dashboard 
+namespace MogTomeApi.Features.Dashboard.Queries 
 {
     public class GetUnmappedCharacters 
     {
