@@ -59,7 +59,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpPost("biography/submission")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Roles = Constants.PaissaTrainer)]
         public async Task<IActionResult> CreateBiographySubmission([FromBody] string biography)
         {
             try
@@ -153,7 +153,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpPost("biography/submission/{submissionId}")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Roles = Constants.PaissaTrainer)]
         public async Task<ActionResult<BiographySubmission>> EditSubmission([FromRoute] Guid submissionId, [FromBody] string biography)
         {
             try
