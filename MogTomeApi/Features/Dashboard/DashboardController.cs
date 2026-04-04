@@ -111,5 +111,56 @@ namespace MogTomeApi.Features.Dashboard
                 return StatusCode(500, "An error occurred when mapping the discord account to the character");
             }
         }
+
+        [HttpPost("unlink")]
+        [Authorize(Roles = Constants.MoogleKnight)]
+        public async Task<IActionResult> Unlink([FromBody] UnlinkDiscordAccountFromCharacter.UnlinkDiscordAccountFromCharacterCommand input)
+        {
+            try
+            {
+                var result = await _mediator.Send(input);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result.Value);
+                }
+                else
+                {
+                    _logger.LogError("Failed to map discord account to character: {Error}", result.Error);
+                    return StatusCode((int)result.StatusCode, result.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error mapping discord account to character: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when mapping the discord account to the character");
+            }
+        }
+
+        [HttpGet("mapped-characters")]
+        [Authorize(Roles = Constants.MoogleKnight)]
+        public async Task<IActionResult> GetMappedCharacters()
+        {
+            try
+            {
+                var result = await _mediator.Send(new GetMappedCharactersQuery());
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result.Value);
+
+                }
+                else
+                {
+                    _logger.LogError("Failed to fetch mapped characters: {Error}", result.Error);
+                    return StatusCode((int)result.StatusCode, result.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error fetching mapped characters: {Message}\nStack Trace:{Trace}", ex.Message, ex.StackTrace);
+                return StatusCode(500, "An error occurred when fetching mapped characters");
+            }
+        }
     }
 }
