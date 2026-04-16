@@ -49,6 +49,7 @@ builder.Services.AddSwaggerGen(config =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = Array.Empty<string>().ToList()
     });
 
+    config.CustomSchemaIds(t => t.FullName!.Replace("+", "."));
 });
 
 builder.Services.AddSignalR();
@@ -104,7 +105,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Officer", policy => policy.RequireRole(Constants.MoogleKnight, Constants.MoogleGuardian));
+});
 
 var app = builder.Build();
 

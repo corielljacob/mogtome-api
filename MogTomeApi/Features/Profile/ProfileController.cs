@@ -22,21 +22,17 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpPost("biography")]
-        [Authorize(Roles = Constants.MoogleKnight)]
-        public async Task<IActionResult> SetBiography([FromBody] string biography)
+        [Authorize(Policy = Constants.OfficerPolicyName)]
+        public async Task<IActionResult> SetBiography([FromBody] SetBiography.Command input)
         {
             try
             {
-                if (string.IsNullOrEmpty(biography) || biography.Length > 500)
+                if (string.IsNullOrEmpty(input.Biography) || input.Biography.Length > 500)
                 {
                     return BadRequest("Biography must be between 1 and 500 characters");
                 }
 
-                var input = new SetBiography.Command
-                {
-                    Biography = biography,
-                    DiscordId = User.FindFirst("discordId")?.Value
-                };
+                input.DiscordId = User.FindFirst("discordId")?.Value;
 
                 var result = await _mediator.Send(input);
 
@@ -96,7 +92,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpGet("biography/submission")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<ActionResult<BiographySubmission>> GetPendingBiographySubmissions()
         {
             try
@@ -123,7 +119,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpGet("biography/submission/{memberId}")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<ActionResult<BiographySubmission>> GetSubmissionForMember([FromRoute] string memberId)
         {
             try
@@ -185,7 +181,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpPost("biography/submission/approve/{submissionId}")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<ActionResult<BiographySubmission>> ApproveBiographySubmission([FromRoute] Guid submissionId)
         {
             try
@@ -216,7 +212,7 @@ namespace MogTomeApi.Features.Profile
         }
 
         [HttpPost("biography/submission/reject/{submissionId}")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<ActionResult<BiographySubmission>> RejectBiographySubmission([FromRoute] Guid submissionId)
         {
             try

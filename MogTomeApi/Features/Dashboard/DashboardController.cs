@@ -21,7 +21,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpGet("unmapped-characters")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<IActionResult> GetUnmappedCharacters([FromQuery] string discordUsername)
         {
             try
@@ -51,7 +51,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpGet("unmapped-discord-users")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<IActionResult> GetUnmappedDiscordUsers([FromQuery] string characterName)
         {
             try
@@ -87,7 +87,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpPost("map")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<IActionResult> Map([FromBody] MapDiscordAccountToCharacter.Command input)
         {
             try
@@ -113,7 +113,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpPost("unlink")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<IActionResult> Unlink([FromBody] UnlinkDiscordAccountFromCharacter.UnlinkDiscordAccountFromCharacterCommand input)
         {
             try
@@ -138,7 +138,7 @@ namespace MogTomeApi.Features.Dashboard
         }
 
         [HttpGet("mapped-characters")]
-        [Authorize(Roles = Constants.MoogleKnight)]
+        [Authorize(Policy = Constants.OfficerPolicyName)]
         public async Task<IActionResult> GetMappedCharacters()
         {
             try

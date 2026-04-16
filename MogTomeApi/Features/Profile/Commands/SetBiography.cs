@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using MogTomeApi.Features.Profile.Data;
 using MogTomeApi.Shared;
 using MongoDB.Driver;
@@ -11,6 +12,7 @@ namespace MogTomeApi.Features.Profile.Commands
         public class Command : IRequest<Result<SetResult>>
         {
             public string Biography { get; set; }
+            [BindNever]
             public string DiscordId { get; set; }
         }
 

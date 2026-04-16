@@ -9,5 +9,6 @@
         public const string PassiveToast = "Passive Toast";
         public const string KupoLifeDatabase = "kupo-life";
         public const string LuckyPennyLicense = "LuckyPennyLicense";
+        public const string OfficerPolicyName = "Officer";
     }
 }
